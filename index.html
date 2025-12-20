@@ -21,6 +21,7 @@
     .list{background:var(--paper);padding:12px;border-radius:6px;height:70vh;overflow:auto;border:1px solid rgba(0,0,0,0.06)}
     .note-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;margin-bottom:8px;cursor:pointer;transition:transform .12s,box-shadow .12s}
     .note-item:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,0.08)}
+    .note-item.active{background:linear-gradient(90deg, rgba(139,0,0,0.05), rgba(0,0,0,0.02));box-shadow:0 8px 18px rgba(139,0,0,0.12);border-left:4px solid var(--accent)}
     .note-thumb{width:44px;height:44px;background:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:Caveat;color:var(--accent);font-size:18px;border:1px dashed rgba(0,0,0,0.06)}
     .note-meta{flex:1}
     .note-title{font-family:Caveat;font-size:16px;margin-bottom:2px}
@@ -72,6 +73,7 @@
   <script>
     const LIST_URL = 'notes/list.json';
     let notesArr = [];
+    let currentNote = null;
 
     function basename(filename){
       return filename.replace(/\.\w+$/, '');
@@ -106,7 +108,10 @@
       list.innerHTML = '';
       arr.forEach(fn=>{
         const item = document.createElement('div');
-        item.className = 'note-item '+(isRead(fn)?'read':'');
+        const classes = ['note-item'];
+        if(isRead(fn)) classes.push('read');
+        if(fn === currentNote) classes.push('active');
+        item.className = classes.join(' ');
         item.tabIndex = 0;
         const thumb = document.createElement('div'); thumb.className='note-thumb'; thumb.textContent = displayName(fn).slice(0,2).toUpperCase();
         const meta = document.createElement('div'); meta.className='note-meta';
@@ -133,7 +138,8 @@
         const paper = document.getElementById('paper');
         paper.innerHTML = html;
         markRead(fn);
-        // update list UI without re-fetching to avoid flashing
+        // set and highlight current note, update list UI without re-fetching to avoid flashing
+        currentNote = fn;
         renderList(notesArr);
         history.replaceState(null,'', '#'+encodeURIComponent(fn));
       }catch(e){
