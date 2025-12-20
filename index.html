@@ -71,22 +71,28 @@
 
   <script>
     const LIST_URL = 'notes/list.json';
+    let notesArr = [];
 
     function basename(filename){
       return filename.replace(/\.\w+$/, '');
     }
+    // Use the stem as-is for display (no filename shown)
     function displayName(filename){
-      return basename(filename).replace(/_/g, '-')
+      return basename(filename);
     }
 
     async function loadList(){
       try{
         const res = await fetch(LIST_URL, {cache:'no-store'});
         if(!res.ok) throw new Error('Cannot load manifest');
-        const arr = await res.json();
-        arr.sort((a,b)=>basename(a).localeCompare(basename(b)));
-        renderList(arr);
-        handleHashLoad(arr);
+        notesArr = await res.json();
+        notesArr.sort((a,b)=>basename(a).localeCompare(basename(b)));
+        renderList(notesArr);
+        // Only handle the hash once on initial load to avoid re-open loops
+        if(!window._initialHashHandled){
+          window._initialHashHandled = true;
+          handleHashLoad(notesArr);
+        }
       }catch(e){
         document.getElementById('list').innerHTML = '<div style="padding:12px;color:#5e4f47">Failed to load notes manifest. Make sure notes/list.json exists.</div>';
       }
@@ -105,8 +111,7 @@
         const thumb = document.createElement('div'); thumb.className='note-thumb'; thumb.textContent = displayName(fn).slice(0,2).toUpperCase();
         const meta = document.createElement('div'); meta.className='note-meta';
         const title = document.createElement('div'); title.className='note-title'; title.textContent = displayName(fn);
-        const sub = document.createElement('div'); sub.className='note-sub'; sub.textContent = fn;
-        meta.appendChild(title); meta.appendChild(sub);
+        meta.appendChild(title);
         item.appendChild(thumb); item.appendChild(meta);
         if(!isRead(fn)){
           const badge = document.createElement('div'); badge.className='badge';
@@ -128,7 +133,8 @@
         const paper = document.getElementById('paper');
         paper.innerHTML = html;
         markRead(fn);
-        await loadList();
+        // update list UI without re-fetching to avoid flashing
+        renderList(notesArr);
         history.replaceState(null,'', '#'+encodeURIComponent(fn));
       }catch(e){
         alert('Failed to load note: '+fn);
@@ -143,7 +149,15 @@
       }
     }
 
-    window.addEventListener('hashchange', ()=>{ loadList(); });
+    // When the hash changes (user clicks back/forward), open the matching note without reloading manifest
+    window.addEventListener('hashchange', ()=>{
+      const h = decodeURIComponent(location.hash.slice(1));
+      if(h){
+        const found = notesArr.find(x=>x===h);
+        if(found) openNote(found);
+      }
+    });
+
     loadList();
   </script>
 </body>
