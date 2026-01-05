@@ -88,7 +88,7 @@
         const res = await fetch(LIST_URL, {cache:'no-store'});
         if(!res.ok) throw new Error('Cannot load manifest');
         notesArr = await res.json();
-        notesArr.sort((a,b)=>basename(b).localeCompare(basename(a)));
+        notesArr.sort((a,b)=>basename(a).localeCompare(basename(b)));
         renderList(notesArr);
         // Only handle the hash once on initial load to avoid re-open loops
         if(!window._initialHashHandled){
